@@ -1,0 +1,83 @@
+      <section id="bridgeConfigPanel" style="display: none; margin-top:90px;">
+        <h3>Hue bridge</h3>
+        <p>Press link button on bridge, then click connect</p>
+        <input id="bridgeIp" type="text"></input>
+        <a class="btn btn-default" href="#" role="button" onclick="connectNewUser($('#bridgeIp').val())">Connect</a>
+      </section>
+
+      <section id="colorNav" style="margin-top:90px;">
+        <div class="btn-group">
+          <button class="btn btn-default" onclick="setGroupOn(true)">On</button>
+          <button class="btn btn-default" onclick="setGroupOn(false)">Off</button>
+        </div>
+        <div class="btn-group">
+          <button class="btn btn-default" onclick="selectMfg('rosco')">Rosco</button>
+          <button class="btn btn-default" onclick="selectMfg('lee')">Lee</button>
+          <button class="btn btn-default" onclick="selectMfg('gam')">Gam</button>
+          <button class="btn btn-default" onclick="selectMfg('random')">Random</button>
+        </div>
+      </section>
+
+      <section id="colorChooser" style="margin-top:25px;">
+        <div id="colorSlider"></div>
+        <div class="text-center"><span class="glyphicon glyphicon-menu-up" aria-hidden="true"></span></div>
+        <div id="colorDetails"></div>
+      </section>
+
+      <section id="favorites" style="margin-top:25px;">
+        <div id="favColorNode"></div>
+
+      </section>
+
+<!-- Scripts -->
+      <script id="template" type="x-tmpl-mustache">
+      {{#.}}
+      <div style="height: 100px; width:100px; background-color:rgb{{ RGB }};"><p style="margin-top: 40px;" class="text-center" onclick="selectColorCode('{{ ColorCode }}');">{{ ColorCode }}</p></div>
+      {{/.}}
+    </script>
+
+    <script id="detailsTemplate" type="x-tmpl-mustache">
+      <div class="text-center">
+        <p>{{ Manufacturer }}  {{ Color }}</p>
+        <p>{{ ColorName }}</p>
+        <button class="btn btn-default" onclick="FavColorApp.addColorCode('{{ ColorCode }}');">Add Favorite</button>
+      </div>
+    </script>
+
+    <script>
+      function loadColors() {
+        var template = $('#template').html();
+        Mustache.parse(template);   // optional, speeds up future uses
+        var rendered = Mustache.render(template, gelsData);
+        $('#colorSlider').html(rendered);
+      }
+
+      loadColors();
+
+      // Initialize gallery
+      var $gallery = $('#colorSlider').flickity({
+        pageDots: false
+      });
+
+      // get instance
+      var flkty = $gallery.data('flickity');
+
+      // access properties
+      console.log( flkty.selectedIndex, flkty.selectedElement );
+
+      // change color on select
+      $gallery.on( 'cellSelect', function() {
+        console.log('Flickity select ' + flkty.selectedIndex + ' color: ' + gelsData[flkty.selectedIndex].ColorCode);
+
+        // Show details
+        var dt = $('#detailsTemplate').html();
+        Mustache.parse(dt);   // optional, speeds up future uses
+        var rendered = Mustache.render(dt, gelsData[flkty.selectedIndex]);
+        $('#colorDetails').html(rendered);
+
+        // Update light state
+        setGroupColorGelIndex(flkty.selectedIndex);
+
+
+      });
+    </script>

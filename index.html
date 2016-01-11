@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=0">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Gel2Hue</title>
+
+    <!-- React -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.0/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.14.0/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js"></script>
+
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">
+    <link rel="stylesheet" href="static/css/flickity.css">
+    <link rel="stylesheet" href="static/css/gel2hue.css">
+
+    <!-- Icons -->
+    <link rel="apple-touch-icon" href="static/icons/apple-touch-icon-180x180.png">
+    <link rel="icon" type="image/png" href="static/icons/favicon-194x194.png" sizes="194x194">
+    <link rel="shortcut icon" href="static/icons/favicon.ico">
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
+
+    <!-- Plugins -->
+    <script src="static/js/vendor/js.cookie.js"></script>
+    <script src='static/js/vendor/jshue.js'></script>
+    <script src='static/js/vendor/flickity.pkgd.min.js'></script>
+    <script src='static/js/gels.js'></script>
+    <script src='static/js/rgb.js'></script>
+    <script src='static/js/gel2hue.js'></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Gel2Hue</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#" onclick="selectMfg()">Home</a></li>
+            <li><a href="#" onclick="forgetBridge()">Disconnect</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+
+      <div id="content" style="margin-top: 70px;"></div>
+
+    </div> <!-- Container -->
+
+    <script type="text/babel">
+        // React App
+        // Current bridge IP: 10.0.1.20
+        // Main app
+        var Gel2HueApp = React.createClass({
+          getInitialState: function() {
+            var myBridgeIP = Cookies.get('bridgeIp');
+            var myUsername = Cookies.get('username');
+            return ({
+              bridgeIP: myBridgeIP,
+              username: myUsername,
+              userConnected: false,
+              lights: {}
+            });
+          },
+          getLights: function() {
+            // Get data from hue
+            this.user.getLights(function(data) {
+              console.log('Got lights data from hue: ', JSON.stringify(data));
+              this.setState({lights: data});
+            }.bind(this),
+            function(data) {
+              console.log('Could not get lights data from Hue')
+            }.bind(this));
+          },
+          componentDidMount: function() {
+            this.hue = jsHue();
+            this.bridge = this.hue.bridge(this.state.bridgeIP);
+            tryConnectUser(this.bridge, this.state.username, this.didConnectUser);
+            // Initialize user for requests
+            this.user = this.bridge.user(this.state.username);
+            // TODO - poll for light state
+            // setInterval(this.getLights, this.props.pollInterval);
+          },
+          updateBridgeIP: function(newBridgeIP) {
+            // Callback to set bridgeIP
+            //
+            // Create the user
+            this.bridge = this.hue.bridge(newBridgeIP);
+            this.bridge.createUser('gel2hue', this.didUpdateBridgeIP);
+
+            // Set state
+            Cookies.set('bridgeIp', newBridgeIP, { expires: 365 });
+            this.setState({
+              bridgeIP: newBridgeIP
+            });
+          },
+          didUpdateBridgeIP: function(data) {
+
+            if (typeof(data[0].error) != 'undefined') {
+              console.log("Error creating user:", data[0].error.description);
+              alert(data[0].error.description);
+              return;
+            }
+
+            // Extract bridge-generated username from returned data
+            var username = data[0].success.username;
+            console.log('New username:', username);
+
+            // Set cookies
+            Cookies.set('username', username, { expires: 365 });
+            Cookies.set('lastBridgeIp', this.state.bridgeIP, { expires: 365 });
+
+            // Instantiate user object with username
+            this.user = this.bridge.user(username);
+
+            // Save state
+            this.setState({
+              username: username,
+              userConnected: true
+            });
+            console.log('Authenticated the user');
+          },
+          didConnectUser: function(newUsername) {
+            // Callback for testing if a user is connected
+
+            // Instantiate user object with username
+            this.user = this.bridge.user(newUsername);
+
+            // set username and userConnected if successful
+            this.setState({
+              username: newUsername,
+              userConnected: true
+            });
+          },
+          render: function() {
+
+            return (
+              <div className="gel2HueApp">
+                { this.state.userConnected ? null : <BridgeConnector onUpdate={this.updateBridgeIP} bridgeIP={this.state.bridgeIP} />}
+                <h3>Colors</h3>
+                <GelGallery data={this.props.data} user={this.user} />
+                <h3>Favorites</h3>
+                <GelFavorites />
+              </div>
+            );
+          }
+        });
+
+        // Frame representing one color
+        var GelFrame = React.createClass({
+          render: function() {
+            return (
+              <div className="gelFrame" style={{backgroundColor:'rgb' + this.props.data.RGB}}>
+                <p className="gelColorCode">
+                  {this.props.colorCode}
+                </p>
+              </div>
+            );
+          }
+        });
+
+        // Component for connecting a Hue Bridge
+        var BridgeConnector = React.createClass({
+          getInitialState: function() {
+            var lastIP = Cookies.get('lastBridgeIp');
+            return {bridgeIP: lastIP};
+          },
+          handleBridgeIPChange: function(e) {
+            this.setState({bridgeIP: e.target.value});
+          },
+          handleSubmit: function(e) {
+            e.preventDefault();
+            var bridgeIP = this.state.bridgeIP.trim();
+            if (!bridgeIP) {
+              return;
+            }
+
+            // Callback to update bridge at root
+            this.props.onUpdate(bridgeIP);
+          },
+          render: function() {
+            return (
+              <div className="bridgeConnector">
+                <h3>Hue bridge</h3>
+                <p>Press link button on bridge, then click connect</p>
+                <form className="connectForm" onSubmit={this.handleSubmit}>
+                  <input
+                   type="text"
+                   placeholder={this.props.bridgeIP}
+                   value={this.state.bridgeIP}
+                   onChange={this.handleBridgeIPChange}
+                  />
+                  <input type="submit" value="Post" />
+                </form>
+              </div>
+            );
+          }
+        });
+
+        // Carousel of all gel colors
+        var GelGallery = React.createClass({
+          getInitialState: function() {
+              return {
+                  selectedIndex: 0
+              }
+          },
+          componentDidMount: function() {
+              const carousel = this.refs.carousel.getDOMNode();
+              const options = {
+                  pageDots: false,
+              }
+
+              this.flkty = new Flickity(carousel, options);
+              this.flkty.on('cellSelect', this.updateSelected);
+          },
+          updateSelected: function() {
+              // Update light
+              var index = this.flkty.selectedIndex;
+              setGroupColorGelIndex(this.props.user, index)
+
+              // Set state
+              this.setState({
+                  selectedIndex: index
+              });
+          },
+          selectName: function(name) {
+            // Lookup name
+            var index = getIndexForMfg(name);
+
+            // Set the gallery
+            this.flkty.select(index);
+
+          },
+          setOnOff: function(isOn) {
+            // Set on (true) or off (false)
+            setGroupOn(this.props.user, isOn);
+          },
+          render: function() {
+            var gelNodes = this.props.data.map(function(gel) {
+              return (
+                <GelFrame colorCode={gel.ColorCode} key={gel.SerialNumber} data={gel} />
+              );
+            });
+            return (
+              <div className="gelGallery">
+                <div className="colorNav">
+                  <div className="btn-group">
+                    <button className="btn btn-default" onClick={this.setOnOff.bind(this, true)}>On</button>
+                    <button className="btn btn-default" onClick={this.setOnOff.bind(this, false)}>Off</button>
+                  </div>
+                  <div className="btn-group">
+                    <button className="btn btn-default" onClick={this.selectName.bind(this,'rosco')}>Rosco</button>
+                    <button className="btn btn-default" onClick={this.selectName.bind(this, 'lee')}>Lee</button>
+                    <button className="btn btn-default" onClick={this.selectName.bind(this, 'gam')}>Gam</button>
+                    <button className="btn btn-default" onClick={this.selectName.bind(this,'random')}>Random</button>
+                  </div>
+                </div>
+                <div ref="carousel" className="gelCarousel">
+                  {gelNodes}
+                </div>
+                <GelDetails data={this.props.data[this.state.selectedIndex]} />
+              </div>
+            );
+          }
+        });
+
+        // Details of the selected color
+        var GelDetails = React.createClass({
+          render: function() {
+            var myGel = this.props.data;
+            return (
+              <div className="gelDetails">
+                <div className="text-center"><span className="glyphicon glyphicon-menu-up" aria-hidden="true"></span></div>
+                <div className="text-center">
+                  <p>{myGel.Manufacturer} {myGel.Color}</p>
+                  <p>{myGel.ColorName}</p>
+                  <button>Add Favorite</button>
+                </div>
+              </div>
+            );
+          }
+        });
+
+        var GelFavorites = React.createClass({
+          render: function() {
+            return (
+              <div className="gelFavorites">
+                Hello, world! I am a gelFavorties.
+              </div>
+            );
+          }
+        });
+
+        ReactDOM.render(
+          <Gel2HueApp data={gelsData} pollInterval={2000} />,
+          document.getElementById('content')
+        );
+        console.log('hello');
+      </script>
+
+
+  </body>
+</html>
