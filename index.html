@@ -241,14 +241,16 @@
               this.flkty.on('cellSelect', this.updateSelected);
           },
           updateSelected: function() {
-              // Update light
+              // Gel gallery selection changed
               var index = this.flkty.selectedIndex;
-              setGroupColorGelIndex(this.props.user, index)
 
               // Set state
               this.setState({
                   selectedIndex: index
               });
+
+              // Update light
+              setGroupColorGelIndex(this.props.user, index)
           },
           selectName: function(name) {
             // Lookup name
