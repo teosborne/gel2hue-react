@@ -164,10 +164,8 @@
             return (
               <div className="gel2HueApp">
                 { this.state.userConnected ? null : <BridgeConnector onUpdate={this.updateBridgeIP} bridgeIP={this.state.bridgeIP} />}
-                <h3>Colors</h3>
+
                 <GelGallery data={this.props.data} user={this.user} />
-                <h3>Favorites</h3>
-                <GelFavorites />
               </div>
             );
           }
@@ -260,9 +258,24 @@
             this.flkty.select(index);
 
           },
+          selectColorCode: function(colorCode) {
+            // Lookup color code and select
+            console.log('Selecting: ', colorCode);
+            var index = findElementIndex(this.props.data, 'ColorCode', colorCode);
+            this.flkty.select(index);
+          },
           setOnOff: function(isOn) {
             // Set on (true) or off (false)
             setGroupOn(this.props.user, isOn);
+          },
+          handleFavoriteSubmit: function(e) {
+            // Favorite button click
+            e.preventDefault();
+
+            // Add gel to favorites
+            var gel = this.props.data[this.state.selectedIndex];
+            this.refs.favGallery.addFavorite(gel);
+
           },
           render: function() {
             var gelNodes = this.props.data.map(function(gel) {
@@ -272,6 +285,7 @@
             });
             return (
               <div className="gelGallery">
+                <h3>Colors</h3>
                 <div className="colorNav">
                   <div className="btn-group">
                     <button className="btn btn-default" onClick={this.setOnOff.bind(this, true)}>On</button>
@@ -288,12 +302,22 @@
                   {gelNodes}
                 </div>
                 <GelDetails data={this.props.data[this.state.selectedIndex]} />
+                <div className="text-center">
+                  <form className="favoriteForm" onSubmit={this.handleFavoriteSubmit}>
+                    <input type="submit" value="Post" className="btn btn-default" value="Add Favorite" />
+                  </form>
+                </div>
+
+                <GelFavorites ref={'favGallery'} selectColorCode={this.selectColorCode} />
+
               </div>
             );
           }
         });
 
+        /////////////////////////////////
         // Details of the selected color
+        //
         var GelDetails = React.createClass({
           render: function() {
             var myGel = this.props.data;
@@ -303,18 +327,62 @@
                 <div className="text-center">
                   <p>{myGel.Manufacturer} {myGel.Color}</p>
                   <p>{myGel.ColorName}</p>
-                  <button>Add Favorite</button>
                 </div>
               </div>
             );
           }
         });
 
-        var GelFavorites = React.createClass({
+        /////////////////////
+        // Favorites library
+        //
+        var GelFavoriteItem = React.createClass({
           render: function() {
+            var gel = this.props.data;
+            return (
+              <div className="favItem">
+                <div onClick={this.props.select}>
+                  <GelFrame colorCode={gel.ColorCode} data={gel} key={gel.SerialNumber} />
+                </div>
+                <a href="#" onClick={this.props.remove}>Remove</a>
+              </div>
+            );
+          }
+        });
+
+        var GelFavorites = React.createClass({
+          getInitialState: function() {
+            return JSON.parse(localStorage.getItem('gelFavoritesState') || '{ "favorites": [] }');
+          },
+          componentDidUpdate: function(prevProps, prevState) {
+              // Save state to local storage
+              localStorage.gelFavoritesState = JSON.stringify(this.state);
+          },
+          addFavorite: function(gel) {
+            // Update favorites in state
+            var nextFavorites = this.state.favorites.concat(gel);
+            this.setState({favorites: nextFavorites});
+          },
+          removeFavorite: function(colorCode) {
+            // Remove and save state
+            var myFavs = this.state.favorites;
+            findAndRemove(myFavs, 'ColorCode', colorCode);
+            this.setState({favorites: myFavs});
+          },
+          render: function() {
+            var favNodes = this.state.favorites.map(function(gel) {
+              var selectClick = this.props.selectColorCode.bind(null, gel.ColorCode);
+              var removeClick = this.removeFavorite.bind(null, gel.ColorCode);
+              return (
+                <GelFavoriteItem data={gel} key={gel.SerialNumber} remove={removeClick} select={selectClick} />
+              );
+            }, this);
             return (
               <div className="gelFavorites">
-                Hello, world! I am a gelFavorties.
+                <h3>Favorites</h3>
+                <div className="favoritesGallery">
+                  {favNodes}
+                </div>
               </div>
             );
           }

@@ -70,20 +70,31 @@ function getIndexForMfg(name)
 }
 
 // HELPER METHODS
-//
-// Find the array index of the gel with the given color code
-function findGelIndex(colorCode) {
-  var index = findElementIndex(gelsData, "ColorCode", colorCode);
-  return index;
-}
 
 // Find an element in the given array where the property matches the value
 function findElement(arr, propName, propValue) {
-  for (var i=0; i < arr.length; i++)
-    if (arr[i][propName] == propValue)
-      return arr[i];
+  return arr[i];
 
   // will return undefined if not found; you could return a default instead
+}
+
+// Find the index of the element matching the value
+function findElementIndex(arr, propName, propValue) {
+  for (var i=0; i < arr.length; i++)
+    if (arr[i][propName] == propValue)
+      return i;
+
+  // will return undefined if not found; you could return a default instead
+}
+
+// Remove the element from the given array
+function findAndRemove(array, property, value) {
+  array.forEach(function(result, index) {
+    if(result[property] === value) {
+      //Remove from array
+      array.splice(index, 1);
+    }
+  });
 }
 
 // Find the index an element in the given array where the property

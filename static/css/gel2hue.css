@@ -1,11 +1,17 @@
 .gelFrame {
   width: 100px;
   height: 100px;
+  padding-top: 40px;
 }
 .gelFrame p {
-  margin-top: 40px;
   text-align: center;
 }
 .gelCarousel {
   margin-top: 15px;
+}
+.favoritesGallery {
+  position: relative;
+}
+.favoritesGallery .favItem {
+  float: left;
 }
